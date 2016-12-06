@@ -8,17 +8,17 @@
 :-dynamic ww/3.
 
 %up (currentPosition, possibleMove1, possibleMove1, output).
-priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY + 1, X == OldX, Y == Ny.
-priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY + 1, W == OldX, Z == Ny.
+priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY - 1,write(X),write("F"),write(Y), X == OldX, Y == Ny.
+priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY - 1,nl,write(W),write("S"),write(Z),nl, W == OldX, Z == Ny.
 %left
-priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX - 1, X == Nx, Y == OldY. 
-priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX - 1, W == Nx, Z == OldY.  
+priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX - 1,write("3"), X == Nx, Y == OldY.
+priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX - 1,write("4"), W == Nx, Z == OldY.
 %down  
-priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY - 1, X == OldX, Y == Ny. 
-priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY - 1, W == OldX, Z == Ny. 
+priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY + 1,write("5"), X == OldX, Y == Ny. 
+priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY + 1,write("6"), W == OldX, Z == Ny. 
 %right  
-priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX + 1, X == Nx, Y == OldY.     
-priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX + 1, W == Nx, Z == OldY. 
+priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX + 1,write("7"), X == Nx, Y == OldY.     
+priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX + 1,write("8"), W == Nx, Z == OldY. 
 
 start:-
 	new_world('/Users/patricksuphalawut/Documents/Project/Third_year_1s/ai/init.pl').
@@ -69,6 +69,8 @@ validate_pos(X,Y):-
 	biscuit(X,Y),
   	retract(biscuit(X,Y)).
 
+validate_pos(X,Y).
+
 %wrap portal logic
 wrap(X,Y,NX,NY):-
 	element(X,Y,Z),
@@ -95,18 +97,18 @@ move_pacman(X,Y):-
 	retract(pacman(_,_,Type)),
 	assert(pacman(NX,NY,Type)).
 
-move_pacmac(X,Y):-
+move_pacman(X,Y):-
 	validate_pos(X,Y),
 	retract(pacman(_,_,Type)),
   	assert(pacman(X,Y,Type)).
 
 %ghost move logic param(blue ghost goal position, pink ghost goal position)
-move_ghost((X,Y),(W,Z)):-
-	pacman(Px,Py,_)
-	move_ghost(red,(Px,Py)),
-	move_ghost(blue,(X,Y)),
-	move_ghost(pink,(W,Z)),
-	move_ghost(orange,(Px,Py)).
+moveGhost((X,Y),(W,Z)):-
+	pacman(Px,Py,_),
+	move_ghost(red,(Px,Py)).
+	%% move_ghost(blue,(X,Y)),
+	%% move_ghost(pink,(W,Z)),
+	%% move_ghost(orange,(Px,Py)).
 
 %for chase mode
 %red ghost target
@@ -131,8 +133,9 @@ move_ghost(Type,Goal):-
 
 %for scatter mode
 move_ghost(Type,Goal):-
-	ghost(X,Y,Type,scatter),
-	scatterGhost((X,Y),(NX,NY),red),
+	\+ghost(_,_,Type,chase),
+	ghost(X,Y,Type,scatter),write("hey"),
+	scatterGhost((X,Y),(NX,NY),Type),
 	move_ghost(NX,NY,Type,scatter).
 
 %for scare mode when pacman eat power ball
@@ -145,16 +148,16 @@ move_ghost(Type,Goal):-
 move_ghost(X,Y,Type,Mode):-
 	wrap(X,Y,NX,NY),
   	retract(ghost(_,_,Type,Mode)),
-  	retract(ghostPrev(_,_,Type,Mode)),
+  	retract(ghostPrev(_,_,Type)),
   	assert(ghost(NX,NY,Type,Mode)),
-  	assert(ghostPrev(X,Y,Type,Mode)).
+  	assert(ghostPrev(X,Y,Type)).
 
 move_ghost(X,Y,Type,Mode):-
 	retract(ghost(_,_,Type,Mode)),
-	retract(ghostPrev(_,_,Type,Mode)),
+	retract(ghostPrev(_,_,Type)),
 	write(X), write("|"),write(Y),
-	assert(ghost(X,Y,Type,M)),
-	assert(ghostPrev(X,Y,Type,Mode)).
+	assert(ghost(X,Y,Type,Mode)),
+	assert(ghostPrev(X,Y,Type)).
 
 
 %ghost target X point. param(currentPosition,nextposition,goalposition,typeofghost).
@@ -263,7 +266,7 @@ recur([F|T],Goal,H,Z):- recur(T,Goal,H,P), h(F,Goal,NewH), H == NewH, append([F]
 
 %calculate one step ahead take param(currentPosition,GoalPosition,Type of the ghost, Output).
 turnBase((X,Y),Goal,Type,NextMove):-
-	ghostPrev(PrevX,PrevY,Type,_),
+	ghostPrev(PrevX,PrevY,Type),
 	findAdj((X,Y),[PrevX,PrevY],AdjPoint),
 	recur(AdjPoint,Goal,H,NewPoint),
 	turnBaseHelp(NewPoint,(X,Y),NextMove).
@@ -271,12 +274,12 @@ turnBase((X,Y),Goal,Type,NextMove):-
 %for case that 2 ways have equal distance param(2PossibleMove, currentPoint, output).
 turnBaseHelp((X,Y),OldPoint,(X,Y)):- !.
 turnBaseHelp([First,Second|T],OldPoint,NewPoint):-
-	priority(OldPoint,First,Second,NewPoint).
+	write(First),nl,write(Second),nl,priority(OldPoint,First,Second,NewPoint),!,write("new point:"),write(NewPoint),nl.
 
 createGhost:- 
 	pacman(X,Y,_),
 	retract(ghost(X,Y,T,scare)),
-	assert(ghost(4,4,T,chase)),
+	assert(ghost(X,Y,T,chase)),
 	fail. 
 createGhost.
 
