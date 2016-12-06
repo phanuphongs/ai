@@ -1,11 +1,8 @@
 %dynamic rule
 :-use_module(library(lists)). 
-:-dynamic biscuit/2. 
 :-dynamic height/1. 
 :-dynamic width/1.
-:-dynamic the_end/1.
-:-dynamic win/1.
-:-dynamic ww/3.
+
 
 %up (currentPosition, possibleMove1, possibleMove1, output).
 priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY - 1,write(X),write("F"),write(Y), X == OldX, Y == Ny.
@@ -28,15 +25,16 @@ restart:-
 	start.
 
 new_world(Map):-
-	reconsult(Map),
+	consult(Map),
+	\+reset,
+	construct,
 	grid([Row|Rest]),
 	length([Row|Rest], H),
 	retract(height(_)),		%del rule
 	assert(height(H)),      %add rule
 	length(Row,W),
 	retract(width(_)),
-	assert(width(W)),
-	create_biscuits.
+	assert(width(W)).
 
 width(0).
 height(0).
@@ -47,35 +45,20 @@ element(X,Y,Z):-
 	nth1(Y,G,Line), 
 	nth1(X,Line,Z). 
 
-create_biscuits:- 
-	element(X,Y,0), 
-	assert(biscuit(X,Y)), 
-	fail. 
-create_biscuits.
-
 %pacman logic what is element on the pacman block.
-validate_pos(X,Y):-
+validatePos(X,Y):-
   	element(X,Y,1), !, fail.
 
-validate_pos(X,Y):-
+validatePos(X,Y):-
 	powerBall(X,Y),
-	rectract(powerBall(X,Y)),
-	retract(pacman(Px,Py,normal)),
-	assert(pacman(Px,Py,beast)),
-	retract(ghost(Rx,Ry,red,_)),
-	assert(ghost(Rx,Ry,red,scare)),
-	retract(ghost(Rx,Ry,blue,_)),
-	assert(ghost(Rx,Ry,blue,scare)),
-	retract(ghost(Rx,Ry,pink,_)),
-	assert(ghost(Rx,Ry,pink,scare)),
-	retract(ghost(Rx,Ry,orange,_)),
-	assert(ghost(Rx,Ry,orange,scare)).
+	retract(powerBall(X,Y)),
+	retract(pacman(Px,Py,_)),
+	assert(pacman(X,Y,beast)),
+	changeAllGhostsMode(scare).
 
-validate_pos(X,Y):-
-	biscuit(X,Y),
-  	retract(biscuit(X,Y)).
+validatePos(X,Y).
 
-validate_pos(X,Y).
+
 
 %wrap portal logic
 wrap(X,Y,NX,NY):-
@@ -84,88 +67,107 @@ wrap(X,Y,NX,NY):-
 	element(NX,NY,Z),
 	\+ (NX== X, NY == Y), !.
 
-get_pacman(X,Y):-
+getPacman(X,Y):-
 	pacman(X,Y,_).
 
-get_ghost(Type,X,Y,Mode):-
+getGhost(Type,X,Y,Mode):-
 	ghost(X,Y,Type,Mode).
 
 %move pacman to new position
-move_pacman(X,Y):-
+movePacman(X,Y):-
   	\+ghost(X,Y,_,scare),
   	pacman(_,_,normal),
   	fail.
-move_pacman(X,Y):-
-	\+biscuit(_,_).
 
-move_pacman(X,Y):-
+
+movePacman(X,Y):-
 	ghost(X,Y,T,scare),
-	validate_pos(NX,NY),
+	validatePos(X,Y),
 	retract(pacman(_,_,Type)),
-	assert(pacman(NX,NY,Type)),
+	assert(pacman(X,Y,Type)),
 	createGhost.
 
-move_pacman(X,Y):- 
+movePacman(X,Y):- 
 	wrap(X,Y,NX,NY),
-	validate_pos(NX,NY),
+	validatePos(NX,NY),
 	retract(pacman(_,_,Type)),
 	assert(pacman(NX,NY,Type)).
 
-move_pacman(X,Y):-
-	validate_pos(X,Y),
+movePacman(X,Y):-
+	validatePos(X,Y),
 	retract(pacman(_,_,Type)),
   	assert(pacman(X,Y,Type)).
 
-%ghost move logic param(blue ghost goal position, pink ghost goal position)
-moveGhost((X,Y),(W,Z)):-
+changeGhostMode(Type,Mode):-
+	retract(ghost(X,Y,Type,_)),
+	assert(ghost(X,Y,Type,Mode)).
+
+changeAllGhostsMode(Mode):-
+	retract(ghost(X1,Y1,red,_)),
+	retract(ghost(X2,Y2,blue,_)),
+	retract(ghost(X3,Y3,pink,_)),
+	retract(ghost(X4,Y4,orange,_)),
+	assert(ghost(X1,Y1,red,Mode)),
+	assert(ghost(X2,Y2,blue,Mode)),
+	assert(ghost(X3,Y3,pink,Mode)),
+	assert(ghost(X4,Y4,orange,Mode)).
+
+moveRedGhost:-
 	pacman(Px,Py,_),
-	move_ghost(red,(Px,Py)),
-	move_ghost(blue,(X,Y)),
-	move_ghost(pink,(W,Z)),
-	move_ghost(orange,(Px,Py)).
+	moveGhost(red,(Px,Py)).
+
+moveBlueGhost(X,Y):-
+	moveGhost(blue,(X,Y)).
+
+movePinkGhost(X,Y):-
+	moveGhost(pink,(X,Y)).
+
+moveOrangeGhost:-
+	moveGhost(orange,G).
+
 
 %for chase mode
 %red ghost target
-move_ghost(Type,Goal):-
+moveGhost(Type,Goal):-
 	Type == red,
 	ghost(X,Y, red, chase),
-	targetGhost(X,Y,NewX,NewY,Goal,Type),!,
-	move_ghost(NewX,NewY,red,chase).
+	targetGhost((X,Y),(NewX,NewY),Goal,Type),!,
+	moveGhost(NewX,NewY,red,chase).
 
 %orange ghost
-move_ghost(Type,Goal):-
+moveGhost(Type,Goal):-
 	Type == orange,
 	ghost(X,Y, Type, chase),
-	orangeGhost(X,Y,NewX,NewY),!,
-	move_ghost(NewX,NewY,Type,chase).
+	orangeGhost((X,Y),(NewX,NewY)),!,
+	moveGhost(NewX,NewY,Type,chase).
 
 %blue and pink ghost   
-move_ghost(Type,Goal):-
+moveGhost(Type,Goal):-
 	ghost(X,Y, Type, chase),
-	targetGhost(X,Y,NewX,NewY,Goal,Type),!,
-	move_ghost(NewX,NewY,Type,chase).
+	targetGhost((X,Y),(NewX,NewY),Goal,Type),!,
+	moveGhost(NewX,NewY,Type,chase).
 
 %for scatter mode
-move_ghost(Type,Goal):-
+moveGhost(Type,Goal):-
 	ghost(X,Y,Type,scatter),write("hey"),
 	scatterGhost((X,Y),(NX,NY),Type),!,
-	move_ghost(NX,NY,Type,scatter).
+	moveGhost(NX,NY,Type,scatter).
 
 %for scare mode when pacman eat power ball
-move_ghost(Type,Goal):-
+moveGhost(Type,Goal):-
 	ghost(X,Y,Type,scare),write("HI"),
 	scatterGhost((X,Y),(NX,NY),Type),!,
-	move_ghost(NX,NY,Type,scare).
+	moveGhost(NX,NY,Type,scare).
 
 %move ghost to new position
-move_ghost(X,Y,Type,Mode):-
+moveGhost(X,Y,Type,Mode):-
 	wrap(X,Y,NX,NY),
   	retract(ghost(_,_,Type,Mode)),
   	retract(ghostPrev(_,_,Type)),
   	assert(ghost(NX,NY,Type,Mode)),
   	assert(ghostPrev(X,Y,Type)).
 
-move_ghost(X,Y,Type,Mode):-
+moveGhost(X,Y,Type,Mode):-
 	retract(ghost(_,_,Type,Mode)),
 	retract(ghostPrev(_,_,Type)),
 	write(X), write("/"),write(Y),nl,
@@ -176,17 +178,17 @@ move_ghost(X,Y,Type,Mode):-
 %ghost target X point. param(currentPosition,nextposition,goalposition,typeofghost).
 targetGhost(CurrPoint,(NextX,NextY),Goal,Type):-
 	ghostPrev(Xprev,Yprev,Type),
-	astar(CurrPoint,Goal,[(Xprev,Yprev)],[(X1,Y1),(NextX,NextY)|T],1,TotalCost).
+	astar(CurrPoint,Goal,[(Xprev,Yprev)],[(X1,Y1),(NextX,NextY)|T],1,Temp,TotalCost).
 
 %orange ghost behaviour param(CurrentPosition,outputPosition). 
 orangeGhost(CurrPoint,NextMove):-
-	paceman(Px,Py,_),
+	pacman(Px,Py,_),
 	h(CurrPoint,(Px,Py),D),
 	D < 8,
 	scatterGhost(CurrPoint,NextMove,orange).
 
 orangeGhost(CurrPoint,NextMove):-
-	paceman(Px,Py,_),
+	pacman(Px,Py,_),
 	h(CurrPoint,(Px,Py),D),
 	D >= 8,
 	targetGhost(CurrPoint,NextMove,(Px,Py),orange).
@@ -241,34 +243,39 @@ h((X,Y),(X2,Y2),D) :-
 
 %param(Element you want to del,array,output)
 removeElement(N,[],[]):- !.
-removeElement(N,[H|T],Z):- N == [H], removeElement(N,T,Z).
+removeElement(N,[H|T],Z):- N == H, removeElement(N,T,Z).
 removeElement(N,[H|T],[H|Z]):- removeElement(N,T,Z).  
 
 % a star param(currentPosition,GoalPosition,VisitedPoint, outputPath, totalG, outputCost)
-astar((X,Y),(X,Y),Visited,[(X,Y)],GValue,TotalCost):- !.
-astar(StartPoint,Goal,Visited,[StartPoint|T],GValue,TotalCost):-
-	findAdj(StartPoint,Visited,PossiblePoint),
+astar((X,Y),(X,Y),Visited,[(X,Y)],GValue,Temp,Temp):- !.
+astar((X,Y),Goal,Visited,[(X,Y)],GValue,Temp,Temp):- GValue >  8,!.
+astar((X,Y),Goal,Visited,[(X,Y)|T],GValue,Temp,TotalCost):-
+	findAdj((X,Y),Visited,PossiblePoint),
 	%% write("P: "),write(PossiblePoint),nl,
 	recur(PossiblePoint,Goal,H,NextPoint),
 	removeElement(NextPoint,PossiblePoint,NV),
-	append([StartPoint|Visited],NV,NewVisit),
-	%% write("N: "),write(NextPoint),nl,write("V: "),write(Visit),nl,
-	TotalCost is GValue + H,
-	%% write("cost: "),write(TotalCost),nl,
+	append([(X,Y)|Visited],NV,NewVisit),
+	%% write("N: "),write(NextPoint),nl,write("V: "),write(NewVisit),nl,
+	TotalCost1 is GValue + H,
+	%% write("cost: "),write(GValue),nl,
 	NewG is GValue + 1,
-	astar(NextPoint,Goal,NewVisit,T,NewG,TotalCost).
+	astar(NextPoint,Goal,NewVisit,T,NewG,TotalCost1,TotalCost). 
 
 %a star, but for the case that two blocks have the same cost value. param(2possibleMove,GoalPosition, VisitedPoint, outputPath, totalG, outputCost)
-astar([First,Second|Tail],Goal,Visited,Path1,GValue,TotalCost1):-
-	write("in 2"),
-	astar(First,Goal,Visited,Path1,GValue,TotalCost1),
-	astar(Second,Goal,Visied,Path2,GValue,TotalCost2),
+astar([First,Second|Tail],Goal,Visited,Path1,GValue1,Temp,TotalCost1):-
+	%% write("in 2   first:"),write(First),write("   second:  "),write(Second),nl,
+	G2 is GValue1,
+	astar(First,Goal,Visited,Path1,GValue1,Temp,TotalCost1),
+	astar(Second,Goal,Visited,Path2,G2,Temp,TotalCost2),
+	%% write(First),write("Total1: "),write(TotalCost1),write(" "),write(Second),write("     Total2: "),write(TotalCost2),nl,
 	TotalCost1 =< TotalCost2.
 
-astar([First,Second|Tail],Goal,Visited,Path2,I,TotalCost2):-
-	write("in 2"),
-	astar(First,Goal,Visited,Path1,I,TotalCost1),
-	astar(Second,Goal,Visited,Path2,I,TotalCost2),
+astar([First,Second|Tail],Goal,Visited,Path2,GValue1,Temp,TotalCost2):-
+	%% write("in 2"),
+	G2 is GValue1,
+	astar(First,Goal,Visited,Path1,GValue1,Temp,TotalCost1),
+	astar(Second,Goal,Visited,Path2,G2,Temp,TotalCost2),
+	%% write(First),write("Total1: "),write(TotalCost1),write(Second),write("     Total2: "),write(TotalCost2),nl,
 	TotalCost2 < TotalCost1.
 
 %compare h value param(possibleMove,GoalPosition,outputCost, outputPoint).
@@ -292,7 +299,7 @@ turnBaseHelp([First,Second|T],OldPoint,NewPoint):-
 createGhost:- 
 	pacman(X,Y,_),
 	retract(ghost(X,Y,T,scare)),
-	assert(ghost(X,Y,T,chase)),
+	assert(ghost(5,2,T,chase)),
 	fail. 
 createGhost.
 
