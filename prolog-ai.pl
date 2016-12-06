@@ -28,7 +28,7 @@ restart:-
 	start.
 
 new_world(Map):-
-	consult(Map),
+	reconsult(Map),
 	grid([Row|Rest]),
 	length([Row|Rest], H),
 	retract(height(_)),		%del rule
@@ -63,7 +63,13 @@ validate_pos(X,Y):-
 	retract(pacman(Px,Py,normal)),
 	assert(pacman(Px,Py,beast)),
 	retract(ghost(Rx,Ry,red,_)),
-	assert(ghost(Rx,Ry,red,scare)).
+	assert(ghost(Rx,Ry,red,scare)),
+	retract(ghost(Rx,Ry,blue,_)),
+	assert(ghost(Rx,Ry,blue,scare)),
+	retract(ghost(Rx,Ry,pink,_)),
+	assert(ghost(Rx,Ry,pink,scare)),
+	retract(ghost(Rx,Ry,orange,_)),
+	assert(ghost(Rx,Ry,orange,scare)).
 
 validate_pos(X,Y):-
 	biscuit(X,Y),
@@ -78,13 +84,21 @@ wrap(X,Y,NX,NY):-
 	element(NX,NY,Z),
 	\+ (NX== X, NY == Y), !.
 
+get_pacman(X,Y):-
+	pacman(X,Y,_).
+
+get_ghost(Type,X,Y,Mode):-
+	ghost(X,Y,Type,Mode).
+
 %move pacman to new position
 move_pacman(X,Y):-
   	\+ghost(X,Y,_,scare),
   	pacman(_,_,normal),
   	fail.
+move_pacman(X,Y):-
+	\+biscuit(_,_).
 
-move_paceman(X,Y):-
+move_pacman(X,Y):-
 	ghost(X,Y,T,scare),
 	validate_pos(NX,NY),
 	retract(pacman(_,_,Type)),
@@ -105,43 +119,42 @@ move_pacman(X,Y):-
 %ghost move logic param(blue ghost goal position, pink ghost goal position)
 moveGhost((X,Y),(W,Z)):-
 	pacman(Px,Py,_),
-	move_ghost(red,(Px,Py)).
-	%% move_ghost(blue,(X,Y)),
-	%% move_ghost(pink,(W,Z)),
-	%% move_ghost(orange,(Px,Py)).
+	move_ghost(red,(Px,Py)),
+	move_ghost(blue,(X,Y)),
+	move_ghost(pink,(W,Z)),
+	move_ghost(orange,(Px,Py)).
 
 %for chase mode
 %red ghost target
 move_ghost(Type,Goal):-
 	Type == red,
 	ghost(X,Y, red, chase),
-	targetGhost(X,Y,NewX,NewY,Goal,Type),
+	targetGhost(X,Y,NewX,NewY,Goal,Type),!,
 	move_ghost(NewX,NewY,red,chase).
 
 %orange ghost
 move_ghost(Type,Goal):-
 	Type == orange,
 	ghost(X,Y, Type, chase),
-	orangeGhost(X,Y,NewX,NewY),
+	orangeGhost(X,Y,NewX,NewY),!,
 	move_ghost(NewX,NewY,Type,chase).
 
 %blue and pink ghost   
 move_ghost(Type,Goal):-
 	ghost(X,Y, Type, chase),
-	targetGhost(X,Y,NewX,NewY,Goal,Type),
+	targetGhost(X,Y,NewX,NewY,Goal,Type),!,
 	move_ghost(NewX,NewY,Type,chase).
 
 %for scatter mode
 move_ghost(Type,Goal):-
-	\+ghost(_,_,Type,chase),
 	ghost(X,Y,Type,scatter),write("hey"),
-	scatterGhost((X,Y),(NX,NY),Type),
+	scatterGhost((X,Y),(NX,NY),Type),!,
 	move_ghost(NX,NY,Type,scatter).
 
 %for scare mode when pacman eat power ball
 move_ghost(Type,Goal):-
-	ghost(X,Y,Type,scare),
-	ghostScary(X,Y,NX,NY),
+	ghost(X,Y,Type,scare),write("HI"),
+	scatterGhost((X,Y),(NX,NY),Type),!,
 	move_ghost(NX,NY,Type,scare).
 
 %move ghost to new position
@@ -155,7 +168,7 @@ move_ghost(X,Y,Type,Mode):-
 move_ghost(X,Y,Type,Mode):-
 	retract(ghost(_,_,Type,Mode)),
 	retract(ghostPrev(_,_,Type)),
-	write(X), write("|"),write(Y),
+	write(X), write("/"),write(Y),nl,
 	assert(ghost(X,Y,Type,Mode)),
 	assert(ghostPrev(X,Y,Type)).
 
