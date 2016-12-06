@@ -1,6 +1,6 @@
 :-dynamic pacman/3. 
-:-dynamic ghost/3. 
-:-dynamic diamond/2.  
+:-dynamic ghost/4. 
+:-dynamic powerBall/2.  
 :-dynamic ghostPrev/3.
 
 grid([[1,1,1,3,1,1,1], 
@@ -12,7 +12,12 @@ grid([[1,1,1,3,1,1,1],
       [1,1,1,3,1,1,1]]).
 
 pacman(2,2,normal).
-ghost(4,6,red).
-ghostPrev(5,6,red).
-ghost(6,6,pink).
+ghost(4,6,red,scatter).
+ghostPrev(4,7,red).
+%% ghost(6,6,pink,scatter).
+%% ghostPrev(6,7,pink).
+%% ghost(6,6,blue,scatter).
+%% ghostPrev(6,7,blue).
+%% ghost(6,6,orange,scatter).
+%% ghostPrev(6,7,orange).
 
