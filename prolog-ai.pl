@@ -90,6 +90,9 @@ getPacman(X,Y):-
 getGhost(Type,X,Y,Mode):-
 	ghost(X,Y,Type,Mode).
 
+getGhostPrev(Type,X,Y):-
+	ghostPrev(X,Y,Type).
+
 %move pacman to new position
 movePacman(X,Y):-
   	\+ghost(X,Y,_,scare),
