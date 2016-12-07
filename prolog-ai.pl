@@ -7,17 +7,17 @@
 
 
 %up (currentPosition, possibleMove1, possibleMove1, output).
-priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY - 1,write(X),write("F"),write(Y), X == OldX, Y == Ny.
-priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY - 1,nl,write(W),write("S"),write(Z),nl, W == OldX, Z == Ny.
+priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY - 1, X == OldX, Y == Ny.
+priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY - 1, W == OldX, Z == Ny.
 %left
-priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX - 1,write("3"), X == Nx, Y == OldY.
-priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX - 1,write("4"), W == Nx, Z == OldY.
+priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX - 1, X == Nx, Y == OldY.
+priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX - 1, W == Nx, Z == OldY.
 %down  
-priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY + 1,write("5"), X == OldX, Y == Ny. 
-priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY + 1,write("6"), W == OldX, Z == Ny. 
+priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY + 1, X == OldX, Y == Ny. 
+priority((OldX,OldY),(X,Y),(W,Z),(OldX,Ny)):- Ny is OldY + 1, W == OldX, Z == Ny. 
 %right  
-priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX + 1,write("7"), X == Nx, Y == OldY.     
-priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX + 1,write("8"), W == Nx, Z == OldY. 
+priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX + 1, X == Nx, Y == OldY.     
+priority((OldX,OldY),(X,Y),(W,Z),(Nx,OldY)):- Nx is OldX + 1, W == Nx, Z == OldY. 
 
 start:-
 	new_world('/Users/patricksuphalawut/Documents/Project/Third_year_1s/ai/init.pl').
@@ -25,6 +25,11 @@ start:-
 restart:-
 	reconsult('/Users/patricksuphalawut/Documents/Project/Third_year_1s/ai/prolog-ai.pl'),
 	start.
+
+reset:-
+	resetPacman,
+	resetGhost.
+
 
 new_world(Map):-
 	consult(Map),
@@ -45,6 +50,17 @@ element(X,Y,Z):-
 	nth1(Y,G,Line), 
 	nth1(X,Line,Z). 
 
+alive:-
+	pacman(X,Y,beast),
+	ghost(X,Y,T,scare),
+	eatGhost.
+
+alive:-
+	pacman(X,Y,_),
+	ghost(X,Y,T,Z),
+	Z \= scare.
+
+
 %pacman logic what is element on the pacman block.
 validatePos(X,Y):-
   	element(X,Y,1), !, fail.
@@ -59,13 +75,14 @@ validatePos(X,Y):-
 validatePos(X,Y).
 
 
-
 %wrap portal logic
 wrap(X,Y,NX,NY):-
 	element(X,Y,Z),
 	Z > 1,
 	element(NX,NY,Z),
 	\+ (NX== X, NY == Y), !.
+getMap(G):-
+	grid(G.
 
 getPacman(X,Y):-
 	pacman(X,Y,_).
@@ -85,7 +102,7 @@ movePacman(X,Y):-
 	validatePos(X,Y),
 	retract(pacman(_,_,Type)),
 	assert(pacman(X,Y,Type)),
-	createGhost.
+	eatGhost.
 
 movePacman(X,Y):- 
 	wrap(X,Y,NX,NY),
@@ -162,17 +179,19 @@ moveGhost(Type,Goal):-
 %move ghost to new position
 moveGhost(X,Y,Type,Mode):-
 	wrap(X,Y,NX,NY),
-  	retract(ghost(_,_,Type,Mode)),
+  	retract(ghost(W,Z,Type,Mode)),
   	retract(ghostPrev(_,_,Type)),
   	assert(ghost(NX,NY,Type,Mode)),
-  	assert(ghostPrev(X,Y,Type)).
+  	assert(ghostPrev(W,Z,Type)),!,
+	\+alive.
 
 moveGhost(X,Y,Type,Mode):-
-	retract(ghost(_,_,Type,Mode)),
+	retract(ghost(W,Z,Type,Mode)),
 	retract(ghostPrev(_,_,Type)),
 	write(X), write("/"),write(Y),nl,
 	assert(ghost(X,Y,Type,Mode)),
-	assert(ghostPrev(X,Y,Type)).
+	assert(ghostPrev(W,Z,Type)),!,
+	\+alive.
 
 
 %ghost target X point. param(currentPosition,nextposition,goalposition,typeofghost).
@@ -217,7 +236,7 @@ findAdj(StartPoint,[],PossibleMove):-
 
 % get every adjust block that is not a wall and not already visit.
 findAdj(StartPoint,Visited,PossibleMove):- 
-	findall((X,Y),(adj(StartPoint,(X,Y)), \+element(X,Y,1), \+member((X,Y),Visited)), PossibleMove).
+	findall((X,Y),(adj(StartPoint,(X,Y)), \+element(X,Y,1), \+member((X,Y),Visited),\+member((X,Y),[(14,13),(15,13)])), PossibleMove).
 
 adj((X,Y),(X,NY)) :-
 	height(H),
@@ -248,7 +267,7 @@ removeElement(N,[H|T],[H|Z]):- removeElement(N,T,Z).
 
 % a star param(currentPosition,GoalPosition,VisitedPoint, outputPath, totalG, outputCost)
 astar((X,Y),(X,Y),Visited,[(X,Y)],GValue,Temp,Temp):- !.
-astar((X,Y),Goal,Visited,[(X,Y)],GValue,Temp,Temp):- GValue >  8,!.
+astar((X,Y),Goal,Visited,[(X,Y)],GValue,Temp,Temp):- GValue >  6,!.
 astar((X,Y),Goal,Visited,[(X,Y)|T],GValue,Temp,TotalCost):-
 	findAdj((X,Y),Visited,PossiblePoint),
 	%% write("P: "),write(PossiblePoint),nl,
@@ -287,7 +306,7 @@ recur([F|T],Goal,H,Z):- recur(T,Goal,H,P), h(F,Goal,NewH), H == NewH, append([F]
 %calculate one step ahead take param(currentPosition,GoalPosition,Type of the ghost, Output).
 turnBase((X,Y),Goal,Type,NextMove):-
 	ghostPrev(PrevX,PrevY,Type),
-	findAdj((X,Y),[PrevX,PrevY],AdjPoint),
+	findAdj((X,Y),[(PrevX,PrevY)],AdjPoint),
 	recur(AdjPoint,Goal,H,NewPoint),
 	turnBaseHelp(NewPoint,(X,Y),NextMove).
 
@@ -296,12 +315,25 @@ turnBaseHelp((X,Y),OldPoint,(X,Y)):- !.
 turnBaseHelp([First,Second|T],OldPoint,NewPoint):-
 	write(First),nl,write(Second),nl,priority(OldPoint,First,Second,NewPoint),!,write("new point:"),write(NewPoint),nl.
 
-createGhost:- 
+eatGhost:- 
 	pacman(X,Y,_),
 	retract(ghost(X,Y,T,scare)),
-	assert(ghost(5,2,T,chase)),
+	assert(ghost(24,12,T,chase)),
+	retract(ghostPrev(_,_,T)),
+	assert(ghostPrev(24,13,T)),
 	fail. 
-createGhost.
+eatGhost.
+
+resetGhost:- 
+	retract(ghost(X,Y,T,_)),
+	assert(ghost(24,12,T,scatter)),
+	retract(ghostPrev(_,_,T)),
+	assert(ghostPrev(24,13,T)),
+	fail. 
+resetGhost.
 
 
+resetPacman:-
+	retract(pacman(_,_,_)),
+	assert(pacman(4,24,normal)).
 

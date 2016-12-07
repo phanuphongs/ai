@@ -50,13 +50,16 @@ grid(
 	[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]).
 
 
-powerBall(3,2).
-ghost(5,2,red,chase).
-ghostPrev(6,2,red).
-ghost(26,30,pink,chase).
-ghostPrev(27,30,pink).
-ghost(27,29,blue,chase).
-ghostPrev(27,30,blue).
-ghost(25,2,orange,chase).
-ghostPrev(26,2,gorange).
-pacman(2,2,normal).
+powerBall(2,4).
+powerBall(27,4).
+powerBall(2,14).
+powerBall(27,14).
+ghost(14,12,red,scatter).
+ghostPrev(14,13,red).
+ghost(14,12,pink,scatter).
+ghostPrev(14,13,pink).
+ghost(14,12,blue,scatter).
+ghostPrev(14,13,blue).
+ghost(14,12,orange,scaterr).
+ghostPrev(14,13,orange).
+pacman(14,24,normal).
