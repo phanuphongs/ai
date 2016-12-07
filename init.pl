@@ -1,3 +1,7 @@
+:-abolish(pacman/3).
+:-abolish(ghost/4).
+:-abolish(powerBall/2).
+:-abolish(ghostPrev/3).
 :-dynamic pacman/3. 
 :-dynamic ghost/4. 
 :-dynamic powerBall/2.  
@@ -45,18 +49,14 @@ grid(
 	[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
 	[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]).
 
-reset:-
-	retract(ghost(_,_,_,_)),
-	retract(pacman(_,_,_)).
 
-construct:-
-	assert(powerBall(3,2)),
-	assert(ghost(5,2,red,chase)),
-	assert(ghostPrev(6,2,red)),
-	assert(ghost(26,30,pink,chase)),
-	assert(ghostPrev(27,30,pink)),
-	assert(ghost(27,29,blue,chase)),
-	assert(ghostPrev(27,30,blue)),
-	assert(ghost(25,2,orange,chase)),
-	assert(ghostPrev(26,2,gorange)),
-	assert(pacman(2,2,normal)).
+powerBall(3,2).
+ghost(5,2,red,chase).
+ghostPrev(6,2,red).
+ghost(26,30,pink,chase).
+ghostPrev(27,30,pink).
+ghost(27,29,blue,chase).
+ghostPrev(27,30,blue).
+ghost(25,2,orange,chase).
+ghostPrev(26,2,gorange).
+pacman(2,2,normal).

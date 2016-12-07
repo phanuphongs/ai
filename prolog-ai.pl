@@ -1,5 +1,7 @@
 %dynamic rule
 :-use_module(library(lists)). 
+:-abolish(height/1).
+:-abolish(width/1).
 :-dynamic height/1. 
 :-dynamic width/1.
 
@@ -21,13 +23,11 @@ start:-
 	new_world('/Users/patricksuphalawut/Documents/Project/Third_year_1s/ai/init.pl').
 
 restart:-
-	reconsult('/Users/patricksuphalawut/Documents/Project/Third_year_1s/ai/prolog-ai.pl').
+	reconsult('/Users/patricksuphalawut/Documents/Project/Third_year_1s/ai/prolog-ai.pl'),
 	start.
 
 new_world(Map):-
 	consult(Map),
-	\+reset,
-	construct,
 	grid([Row|Rest]),
 	length([Row|Rest], H),
 	retract(height(_)),		%del rule
