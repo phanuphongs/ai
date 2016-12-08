@@ -200,7 +200,7 @@ moveGhost(X,Y,Type,Mode):-
 %ghost target X point. param(currentPosition,nextposition,goalposition,typeofghost).
 targetGhost(CurrPoint,(NextX,NextY),Goal,Type):-
 	ghostPrev(Xprev,Yprev,Type),
-	astar(CurrPoint,[],Goal,[(Xprev,Yprev),(14,13),(15,13)],[(X1,Y1),(NextX,NextY)|T],1,Temp,TotalCost).
+	astar(CurrPoint,[],Goal,[(Xprev,Yprev),(14,13),(15,13)],[(X1,Y1),(NextX,NextY)|T]).
 
 %orange ghost behaviour param(CurrentPosition,outputPosition). 
 orangeGhost(CurrPoint,NextMove):-
@@ -269,8 +269,8 @@ removeElement(N,[H|T],Z):- N == H, removeElement(N,T,Z).
 removeElement(N,[H|T],[H|Z]):- removeElement(N,T,Z).  
 
 % a star param(currentPosition,openlist,GoalPosition,VisitedPoint, outputPath, totalG, temp,outputCost)
-astar((X,Y),Open,(X,Y),Visited,[(X,Y)],GValue,Temp,Temp):- !.
-astar((X,Y),Open,Goal,Visited,[(X,Y)|T],GValue,Temp,TotalCost):-
+astar((X,Y),Open,(X,Y),Visited,[(X,Y)]):- !.
+astar((X,Y),Open,Goal,Visited,[(X,Y)|T]):-
 	findAdj((X,Y),Visited,PossiblePoint),
 	%% write("P: "),write(PossiblePoint),nl,
 	%% get_from_heap(Heap,Key,NexT,NewHeap),
@@ -279,16 +279,14 @@ astar((X,Y),Open,Goal,Visited,[(X,Y)|T],GValue,Temp,TotalCost):-
 	removeElement(NextPoint,PossiblePoint,NV),
 	append([(X,Y)|Visited],NV,NewVisit),
 	%% write("N: "),write(NextPoint),nl,write("V: "),write(NewVisit),nl,write("cost: "),write(GValue),nl,
-	TotalCost1 is GValue + H,
-	NewG is GValue + 1,
-	astar(NextPoint,Open,Goal,NewVisit,T,NewG,TotalCost1,TotalCost). 
+	astar(NextPoint,Open,Goal,NewVisit,T).
 
 %a star, but for the case that two blocks have the same cost value. param(2possibleMove,openlist,GoalPosition,VisitedPoint, outputPath, totalG, temp,outputCost)
-astar([First,Second|Tail],Open,Goal,Visited,Path1,GValue1,Temp,TotalCost1):-
+astar([First,Second|Tail],Open,Goal,Visited,Path1):-
 	%% write("in 2   first:"),write(First),write("   second:  "),write(Second),nl,
 	append([Second],Open,NewOpen),
 	%% write(NewOpen),nl,
-	astar(First,NewOpen,Goal,Visited,Path1,GValue1,Temp,TotalCost1).
+	astar(First,NewOpen,Goal,Visited,Path1).
 
 
 %compare h value param(possibleMove,GoalPosition,outputCost, outputPoint).
