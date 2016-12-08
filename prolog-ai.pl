@@ -82,7 +82,7 @@ wrap(X,Y,NX,NY):-
 	element(NX,NY,Z),
 	\+ (NX== X, NY == Y), !.
 getMap(G):-
-	grid(G.
+	grid(G).
 
 getPacman(X,Y):-
 	pacman(X,Y,_).
@@ -200,7 +200,7 @@ moveGhost(X,Y,Type,Mode):-
 %ghost target X point. param(currentPosition,nextposition,goalposition,typeofghost).
 targetGhost(CurrPoint,(NextX,NextY),Goal,Type):-
 	ghostPrev(Xprev,Yprev,Type),
-	astar(CurrPoint,Goal,[(Xprev,Yprev)],[(X1,Y1),(NextX,NextY)|T],1,Temp,TotalCost).
+	astar(CurrPoint,[],Goal,[(Xprev,Yprev),(14,13),(15,13)],[(X1,Y1),(NextX,NextY)|T],1,Temp,TotalCost).
 
 %orange ghost behaviour param(CurrentPosition,outputPosition). 
 orangeGhost(CurrPoint,NextMove):-
@@ -239,7 +239,7 @@ findAdj(StartPoint,[],PossibleMove):-
 
 % get every adjust block that is not a wall and not already visit.
 findAdj(StartPoint,Visited,PossibleMove):- 
-	findall((X,Y),(adj(StartPoint,(X,Y)), \+element(X,Y,1), \+member((X,Y),Visited),\+member((X,Y),[(14,13),(15,13)])), PossibleMove).
+	findall((X,Y),(adj(StartPoint,(X,Y)), \+element(X,Y,1), \+member((X,Y),Visited)), PossibleMove).
 
 adj((X,Y),(X,NY)) :-
 	height(H),
@@ -268,37 +268,28 @@ removeElement(N,[],[]):- !.
 removeElement(N,[H|T],Z):- N == H, removeElement(N,T,Z).
 removeElement(N,[H|T],[H|Z]):- removeElement(N,T,Z).  
 
-% a star param(currentPosition,GoalPosition,VisitedPoint, outputPath, totalG, outputCost)
-astar((X,Y),(X,Y),Visited,[(X,Y)],GValue,Temp,Temp):- !.
-astar((X,Y),Goal,Visited,[(X,Y)],GValue,Temp,Temp):- GValue >  6,!.
-astar((X,Y),Goal,Visited,[(X,Y)|T],GValue,Temp,TotalCost):-
+% a star param(currentPosition,openlist,GoalPosition,VisitedPoint, outputPath, totalG, temp,outputCost)
+astar((X,Y),Open,(X,Y),Visited,[(X,Y)],GValue,Temp,Temp):- !.
+astar((X,Y),Open,Goal,Visited,[(X,Y)|T],GValue,Temp,TotalCost):-
 	findAdj((X,Y),Visited,PossiblePoint),
 	%% write("P: "),write(PossiblePoint),nl,
-	recur(PossiblePoint,Goal,H,NextPoint),
+	%% get_from_heap(Heap,Key,NexT,NewHeap),
+	append(PossiblePoint,Open,NewPossible),
+	recur(NewPossible,Goal,H,NextPoint),
 	removeElement(NextPoint,PossiblePoint,NV),
 	append([(X,Y)|Visited],NV,NewVisit),
-	%% write("N: "),write(NextPoint),nl,write("V: "),write(NewVisit),nl,
+	%% write("N: "),write(NextPoint),nl,write("V: "),write(NewVisit),nl,write("cost: "),write(GValue),nl,
 	TotalCost1 is GValue + H,
-	%% write("cost: "),write(GValue),nl,
 	NewG is GValue + 1,
-	astar(NextPoint,Goal,NewVisit,T,NewG,TotalCost1,TotalCost). 
+	astar(NextPoint,Open,Goal,NewVisit,T,NewG,TotalCost1,TotalCost). 
 
-%a star, but for the case that two blocks have the same cost value. param(2possibleMove,GoalPosition, VisitedPoint, outputPath, totalG, outputCost)
-astar([First,Second|Tail],Goal,Visited,Path1,GValue1,Temp,TotalCost1):-
+%a star, but for the case that two blocks have the same cost value. param(2possibleMove,openlist,GoalPosition,VisitedPoint, outputPath, totalG, temp,outputCost)
+astar([First,Second|Tail],Open,Goal,Visited,Path1,GValue1,Temp,TotalCost1):-
 	%% write("in 2   first:"),write(First),write("   second:  "),write(Second),nl,
-	G2 is GValue1,
-	astar(First,Goal,Visited,Path1,GValue1,Temp,TotalCost1),
-	astar(Second,Goal,Visited,Path2,G2,Temp,TotalCost2),
-	%% write(First),write("Total1: "),write(TotalCost1),write(" "),write(Second),write("     Total2: "),write(TotalCost2),nl,
-	TotalCost1 =< TotalCost2.
+	append([Second],Open,NewOpen),
+	%% write(NewOpen),nl,
+	astar(First,NewOpen,Goal,Visited,Path1,GValue1,Temp,TotalCost1).
 
-astar([First,Second|Tail],Goal,Visited,Path2,GValue1,Temp,TotalCost2):-
-	%% write("in 2"),
-	G2 is GValue1,
-	astar(First,Goal,Visited,Path1,GValue1,Temp,TotalCost1),
-	astar(Second,Goal,Visited,Path2,G2,Temp,TotalCost2),
-	%% write(First),write("Total1: "),write(TotalCost1),write(Second),write("     Total2: "),write(TotalCost2),nl,
-	TotalCost2 < TotalCost1.
 
 %compare h value param(possibleMove,GoalPosition,outputCost, outputPoint).
 recur([P],Goal,H,P):- h(P,Goal,H).
@@ -339,4 +330,16 @@ resetGhost.
 resetPacman:-
 	retract(pacman(_,_,_)),
 	assert(pacman(4,24,normal)).
+
+%% hh:-
+%% 	dappend([1,2,3 | Tail1]-Tail1, [4,5,6| Tail2]-Tail2, Result-Tail3),
+%% 	write(Result-[]).
+%% 	%% dappend([Result|Tail3]-Tail3, [4,5,6| Tail4]-Tail4, Result1-[]),
+%% 	%% write(Result1),
+
+%% dappend(List1-Tail1, Tail1-Tail2, List1-Tail2).
+
+%% as_difflist([], Back-Back).
+%% as_difflist([Head| Tail], [Head| Tail2]-Back) :-
+%%     as_difflist(Tail, Tail2-Back).
 
